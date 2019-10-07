@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <!-- import CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <style>
+        .border-left-empty {
+            width: 0;
+            height: 0;
+            border-bottom: 6px solid transparent;
+            border-right: 6px solid #606266d4;
+            border-top: 6px solid transparent;
+            position: absolute;
+            left: -6px;
+        }
+
+        .border-left-empty span {
+            display: block;
+            width: 0;
+            height: 0;
+            border-bottom: 5px solid transparent;
+            border-right: 5px solid white;
+            border-top: 5px solid transparent;
+            position: absolute;
+            left: 2px;
+            top: -5px;
+        }
+
+        select {
+            border: none;
+            background: none;
+            min-height: 1.3em;
+        }
+
+        body, html {
+            border: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .send_template_open {
+            color: #1989fa !important;
+        }
+    </style>
+    <script src="lib/js/zepto.js"></script>
+</head>
+<body style="user-select: none">
+<div id="app">
+    <el-container>
+        <div
+                style="display: flex;align-items: center;justify-content: center;background-color: rgba(0,0,0,0.6);padding: 8px 15px">
+            <div style="display: inline-block" @dragover.prevent=";;"
+                 @drop="componentDragOver($event,-1,-1)">
+                <el-button class="del-btn" style="font-size: 2em;color: #FFFFFF;"
+                           icon="el-icon-delete" type="text" circle @click="clearData">
+
+                </el-button>
+
+            </div>
+            <el-button class="del-btn" style="font-size: 2em;color: #FFFFFF;"
+                       icon="el-icon-video-camera" type="text" circle>
+
+            </el-button>
+
+            <el-button @click="saveData" class="del-btn" style="font-size: 2em;color: #FFFFFF;"
+                       icon="el-icon-toilet-paper" type="text" circle title="导出"></el-button>
+
+            <el-button class="del-btn" style="font-size: 2em;color: #FFFFFF;"
+                       icon="el-icon-upload" type="text" circle @click="postData">
+
+            </el-button>
+
+        </div>
+        <el-header style="display: flex;align-items: center;min-height: 100px;justify-content: flex-start">
+            名字：<input type="text" v-model="story.name" style="border: none;">
+            <div v-for="(item,index) in story.roles" style="margin: 8px 15px" draggable="true"
+                 @dragstart="componentDragStart($event,index,3)">
+                <div :style="{backgroundImage:'url('+item.head+')'}" style="width: 80px;height: 80px;position: relative;background-size: contain;border-radius: 40px;box-shadow: #06ae56 0 0 5px;
+">
+                    <div style="position: absolute;bottom: -1.5rem;left: 0;right: 0;text-align: center;"
+                         @click="edit(item)">{{item.name}}
+                    </div>
+                </div>
+            </div>
+
+            <el-button circle icon="el-icon-plus" @click="add"></el-button>
+        </el-header>
+        <el-main style="display: flex">
+            <div style="flex-grow: 5">
+                <div> 章节
+                    <el-button type="text" circle icon="el-icon-plus" @click="addChapter"></el-button>
+                </div>
+                <el-collapse accordion v-model="story.activeNames">
+                    <div v-for="(item,index) in story.chapters" :name="index" draggable="true"
+                         @drop="componentDragOver($event,index,2)"
+                         @dragstart="componentDragStart($event,index,2)" @dragover.prevent=";;">
+                        <el-collapse-item>
+                            <template slot="title">
+                                第{{index+1}}章：<input v-model="item.name" style="border:none;">
+                            </template>
+                            场景类型： <select name="" id=""
+                                          v-model="item.type"
+                                          style="min-height: 1.5em">
+                            <option value="聊天">聊天</option>
+                            <option value="幕布">幕布</option>
+                        </select>
+                            <el-button type="text" @click="editChapter(item)">编辑</el-button>
+                            <div><textarea v-model="item.summary" style="width: 90%;border: none;"></textarea></div>
+
+                        </el-collapse-item>
+                    </div>
+                </el-collapse>
+            </div>
+            <div style="flex-grow: 2;display: flex;align-items: center;justify-content: center">
+                <div style="background: url(img/andriod_white.png);width: 402px;height: 797px;">
+
+                </div>
+            </div>
+        </el-main>
+        <el-footer>
+
+        </el-footer>
+    </el-container>
+    <el-dialog
+            title="角色编辑"
+            :visible.sync="dialogVisible"
+            width="45%">
+        <el-form>
+            <el-form-item label="头像">
+                <el-tooltip placement="top">
+                    <div slot="content">
+                        <el-input v-model="form.head" style="min-width: 20em"></el-input>
+                    </div>
+                    <el-avatar shape="square" :size="80" :src="form.head" fit="cover">
+                        <img src="https://cube.elemecdn.com/e/fd/0fc7d20532fdaf769a25683617711png.png"/>
+                    </el-avatar>
+                </el-tooltip>
+            </el-form-item>
+            <el-form-item label="半身身">
+                <el-tooltip placement="top">
+                    <div slot="content">
+                        <el-input v-model="form.half" style="min-width: 20em"></el-input>
+                    </div>
+                    <el-image shape="square" :src="form.half" fit="cover">
+                    </el-image>
+                </el-tooltip>
+            </el-form-item>
+            <el-form-item label="全身">
+                <el-tooltip placement="top">
+                    <div slot="content">
+                        <el-input v-model="form.whole" style="min-width: 20em"></el-input>
+                    </div>
+                    <el-image shape="square" :src="form.whole" fit="cover">
+                    </el-image>
+                </el-tooltip>
+            </el-form-item>
+            <el-form-item label="姓名">
+                <el-input v-model="form.name"></el-input>
+            </el-form-item>
+            <el-form-item label="性别">
+                <el-input v-model="form.sex"></el-input>
+            </el-form-item>
+            <el-form-item label="年龄">
+                <el-input v-model.number="form.age"></el-input>
+            </el-form-item>
+            <el-form-item label="职业">
+                <el-input v-model="form.job"></el-input>
+            </el-form-item>
+            <el-form-item label="身份">
+                <el-select v-model="form.role" placeholder="请选择">
+                    <el-option label="主角" value="zj">
+                    </el-option>
+                    <el-option label="配角" value="pj">
+                    </el-option>
+                    <el-option label="旁白" value="pb">
+                    </el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item label="标签">
+                <el-input type="textarea" v-model="form.labels"></el-input>
+            </el-form-item>
+            <el-form-item label="简介">
+                <el-input type="textarea" v-model="form.summury"></el-input>
+            </el-form-item>
+            <el-form-item label="相册">
+                <el-input type="textarea" v-model="form.photos"></el-input>
+            </el-form-item>
+
+        </el-form>
+        <span slot="footer" class="dialog-footer">
+        <el-button @click="dialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
+        </span>
+    </el-dialog>
+
+    <el-dialog
+
+            :visible.sync="dialogVisible2"
+            width="60%">
+        <template slot="title">
+            {{chapter.name}}
+            <el-button v-if="chapterStak.length>0" icon="el-icon-arrow-left" type="text" @click="popStack">返回上一层
+            </el-button>
+        </template>
+        <!--{{chapter}}-->
+        <el-form v-if="chapter.top" :inline="true">
+            <el-form-item label="背景图">
+                <el-input v-model="chapter.backgroundImage"></el-input>
+            </el-form-item>
+            <el-form-item label="音乐">
+                <el-input v-model="chapter.backgroundMusic"></el-input>
+            </el-form-item>
+        </el-form>
+        <div>
+            流程
+        </div>
+        <br>
+        <div v-for="(item,index) in chapter.chat" @drop="componentDragOver($event,index)"
+             @dragstart="componentDragStart($event,index)" @dragover.prevent=";;">
+            <div v-if="item.sourceType !== 'select' && item.sourceType !== 'jump'&& item.sourceType !== 'delay'&& item.sourceType !== 'over'"
+                 style="display: flex;align-items: center;margin: 1.5em" draggable="true"
+                 :style="{flexDirection:item.role==='zj'?'row-reverse':'row'}">
+                <div class="block" style="margin: 8px 15px;">
+                    <div style="display: flex;flex-direction: column;align-items: center">
+                        <el-tooltip placement="top">
+                            <div slot="content">
+                                <el-button type="text" @click="chapter.chat.splice(index,1)"
+                                           size="mini"
+                                           style="align-self: flex-start;color:white">删除
+                                </el-button>
+                                |
+                                <el-button type="text" @click="addChat(index)"
+                                           size="mini"
+                                           style="align-self: flex-start;color:white">向上插入
+                                </el-button>
+                            </div>
+                            <el-avatar shape="square" :size="50" :src="huhuha[item.name].head" fit="cover">
+                                <img src="https://cube.elemecdn.com/e/fd/0fc7d20532fdaf769a25683617711png.png"/>
+                            </el-avatar>
+                        </el-tooltip>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="font-size: 12px;line-height:1em;padding: 3px 0px;height: 1em;border-radius: 100px;">
+                <span v-if="huhuha[item.name].role !== 'zj'" style="display: flex;"
+                      :style="{flexDirection:huhuha[item.name].role==='zj'?'row-reverse':'row'}">
+                 {{item.name?item.name:'未知'}}|{{item.sourceType}} &nbsp;&nbsp;&nbsp;&nbsp;<el-button
+                        class="el-icon-upload" type="text"
+                        style="padding: 0;font-size: 1.2em;color: #C7C7C7"
+                        :class="{send_template_open:item.sendTemplate}"
+                        @click="templateSwitch(item)" title="推送该条消息给用户"></el-button>
+                </span>
+                        <span v-if="huhuha[item.name].role === 'zj'" style="display: flex;transform: scale(0.9);"
+                              :style="{flexDirection:huhuha[item.name].role==='zj'?'row-reverse':'row'}">
+                 {{item.sourceType}}|{{item.name?item.name:'未知'}}
+                </span>
+                    </div>
+                    <div style="padding: 8px 15px;border-radius: 3px;border: solid 1px #606266d4;word-break: break-all;display: flex;position: relative">
+                        <div class="border-left-empty">
+                            <span></span>
+                        </div>
+
+                        <el-tooltip placement="top" v-if="item.sourceType === 'image'">
+                            <div slot="content">
+                                <input type="text" v-model="item.content" style="min-width: 30em;">
+                            </div>
+                            <el-image shape="square" style="max-width: 30em" fit="contain" :src="item.content">
+                                <img src="https://cube.elemecdn.com/e/fd/0fc7d20532fdaf769a25683617711png.png"
+                                     style="max-width: 20em"/>
+                            </el-image>
+                        </el-tooltip>
+                        <textarea v-if="item.sourceType !== 'image'" type="text" v-model="item.content"
+                                  style="color: #606266;height: 2em;border: none;outline: none;min-height: 3em;min-width: 20em;"
+                                  :style="{width:item.contentWidth +'px',height:item.contentHeight +'px'}"
+                                  onresize="console.log(event)"></textarea>
+                    </div>
+                </div>
+
+
+            </div>
+            <div v-if="item.sourceType === 'select'"
+                 style="display: flex;justify-content: center;margin: 1.5em" draggable="true">
+                <div style="display: flex;flex-direction: column">
+                    <span>文本选项
+                    <el-tooltip placement="top">
+  <div slot="content"><el-button @click="addOptions(item)" type="text"
+                                 size="mini"
+                                 style="align-self: flex-start;color: white">增加项
+                    </el-button>|<el-button @click="chapter.chat.splice(index,1)" type="text"
+                                            size="mini"
+                                            style="align-self: flex-start;color: white">设置
+                    </el-button>|<el-button @click="chapter.chat.splice(index,1)" type="text"
+                                            size="mini"
+                                            style="align-self: flex-start;color: white">删除
+                    </el-button>|<el-button type="text" @click="addChat(index)"
+                                            size="mini"
+                                            style="align-self: flex-start;color:white">向上插入
+                        </el-button></div>
+  <el-button circle icon="el-icon-setting" @click=""
+             size="mini"></el-button>
+</el-tooltip>
+                    </span>
+                    <div v-for="(iit,ii) in item.content">
+                        <div style="text-align: right;transform: scale(0.7);color: #303133;margin-right: -4em;user-select: none">
+                            <!--<span>{{iit.click}}</span>|-->
+                            <span @click="addSection(iit)" style="cursor: pointer;">编辑小节</span>|
+                            <span @click="item.content.splice(ii,1)">删除</span>
+                        </div>
+                        <div style="padding: 8px 15px;border-radius: 3px;border: solid 1px #606266d4;word-break: break-all;display: flex;align-items: flex-start;"
+                             tabindex="0">
+                            {{ii+1+'.'}}
+                            <textarea type="text" v-model="iit.option"
+                                      style="color: #606266;height: 2em;border: none;outline: none;min-height: 2em;min-width: 25em;"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div v-if="item.sourceType === 'jump'"
+                 style="display: flex;align-items: center;flex-direction: column;justify-content: flex-start;margin: 1.5em"
+                 draggable="true">
+                <span>选着后将跳转到指定的章节</span>
+                <div style="padding: 8px 15px;border-radius: 3px;border: solid 1px #606266d4;word-break: break-all;align-items: center;display: flex;">
+                    <div>跳转:</div>
+                    <select v-model="item.content">
+                        <option v-for="op in story.chapters" :value="op.name">{{op.name}}</option>
+                    </select>
+                    <el-tooltip placement="top">
+                        <div slot="content">
+                            <el-button type="text" @click="chapter.chat.splice(index,1)"
+                                       size="mini"
+                                       style="align-self: flex-start;color:white">删除
+                            </el-button>
+                        </div>
+                        <el-button circle icon="el-icon-setting" @click=""
+                                   size="mini"></el-button>
+                    </el-tooltip>
+                    <!--<input type="text" v-model="item.content">-->
+                </div>
+            </div>
+
+            <div v-if="item.sourceType === 'delay'"
+                 style="display: flex;align-items: center;flex-direction: column;margin: 1.5em;justify-content: flex-start"
+                 draggable="true">
+                <span>设置完成之后剧本将阻塞规定的时间之后</span>
+                <div style="padding: 8px 15px;border-radius: 3px;border: solid 1px #606266d4;word-break: break-all;display: flex;align-items: center;display: flex">
+                    <div>阻塞延时 :</div>
+                    <input type="text" style="outline: none;border: none;min-width: 8em;" v-model="item.content"
+                           placeholder="请输入阻塞的秒数">
+                    <el-tooltip placement="top">
+                        <div slot="content">
+                            <el-button type="text" @click="chapter.chat.splice(index,1)"
+                                       size="mini"
+                                       style="align-self: flex-start;color:white">删除
+                            </el-button>
+                        </div>
+                        <el-button circle icon="el-icon-setting" @click=""
+                                   size="mini"></el-button>
+                    </el-tooltip>
+                    <!--<input type="text" v-model="item.content">-->
+                </div>
+
+            </div>
+
+            <div v-if="item.sourceType === 'over'"
+                 style="display: flex;align-items: center;flex-direction: column;margin: 1.5em;justify-content: flex-start"
+                 draggable="true">
+                <el-tooltip placement="top">
+                    <div slot="content">
+                        <el-button type="text" @click="chapter.chat.splice(index,1)"
+                                   size="mini"
+                                   style="align-self: flex-start;color:white">删除
+                        </el-button>
+                    </div>
+                    <span>剧本到此结束</span>
+
+                </el-tooltip>
+            </div>
+        </div>
+        <span slot="footer" class="dialog-footer">
+             <el-select v-model="temp.sourceType" placeholder="选着资源类型">
+                <el-option v-for="item in sourceType" :label="item.label" :value="item.value">
+                </el-option>
+            </el-select>
+            <el-select v-model="temp.name" placeholder="选着演员">
+                <el-option v-for="item in story.roles" :label="item.name" :value="item.name">
+                </el-option>
+            </el-select>
+            <el-button type="text" circle icon="el-icon-plus" @click="addChat"></el-button>
+        <el-button type="primary" @click="popStack">关 闭</el-button>
+        </span>
+    </el-dialog>
+
+</div>
+</body>
+<!-- import Vue before Element -->
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<!-- import JavaScript -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+
+<script>
+
+    const app = new Vue({
+        el: '#app',
+        created: function () {
+            this.refreshData()
+
+        },
+        data: function () {
+            return {
+                visible: false,
+                dialogVisible: false,
+                dialogVisible2: false,
+                form: {},
+                chapter: {},
+                chapterStak: [],//章节编辑堆栈
+                story: {},
+                temp: {},
+                huhuha: {},
+                sourceType: [{label: '文本', value: 'string'}, {label: '视频', value: 'video'}, {
+                    label: '音频',
+                    value: 'audio'
+                }, {label: '图片', value: 'image'}, {label: '文本选项', value: 'select'}, {
+                    label: '延时',
+                    value: 'delay'
+                }, {label: '跳转', value: 'jump'}, {label: '结束', value: 'over'}]
+            }
+        },
+        methods: {
+            editChapter(item) {
+                this.dialogVisible2 = true
+                this.chapter = item
+                for (v of this.story.roles) {
+                    this.huhuha[v.name] = v;
+                }
+            },
+            popStack() {
+                let chapter = this.chapterStak.pop();
+                if (chapter) {
+                    this.dialogVisible2 = true
+                    this.chapter = chapter
+                } else {
+                    this.chapter = {}
+                    this.dialogVisible2 = false
+                }
+            },
+            templateSwitch(item) {
+                if (item.sendTemplate) {
+                    item.sendTemplate = false
+                } else {
+                    item.sendTemplate = true
+                }
+                console.log(item)
+            },
+            componentDragOver(event, index, type = 1) {
+                let rtype = event.dataTransfer.getData("type")
+                let pindex = event.dataTransfer.getData("index")
+                console.log(pindex)
+                console.log(rtype)
+                if (type === -1) {//删除
+                    if (rtype === '3') {
+                        let item = this.story.roles.splice(pindex, 1)
+                    } else if (rtype === '2') {
+                        let item = this.story.chapters.splice(pindex, 1)
+                    }
+                    return;
+                }
+
+                if (type === 1 && rtype === "1") {
+                    let item = this.chapter.chat.splice(pindex, 1)
+                    this.chapter.chat.splice(index, 0, item[0])
+                } else if (type === 2 && rtype === "2") {
+                    let item = this.story.chapters.splice(pindex, 1)
+                    this.story.chapters.splice(index, 0, item[0])
+                }
+            },
+            componentDragStart(event, index, type = 1) {
+                console.log(type)
+                event.dataTransfer.setData("index", index);
+                event.dataTransfer.setData("type", type);
+            },
+            addSection(item) {
+                if (item.section)
+                    item.section.name = item.option
+                else
+                    item.section = {name: item.option, chat: []}
+                this.pushStack(item.section);
+            },
+            pushStack(item) {
+                this.chapterStak.push(this.chapter)
+                this.chapter = item;
+                this.dialogVisible2 = true
+            },
+            addOptions(item) {
+                item.content.push({option: '新的选项', click: '未知'})
+            },
+            sizechange(event) {
+                console.log(event)
+            },
+            edit(item) {
+                this.form = item
+                this.dialogVisible = true
+            },
+            addChat(index) {
+
+                if (!this.temp.sourceType) {
+                    this.$message("请选择角色")
+                    return
+                }
+
+                let param = {...this.temp}
+
+//                this.story.roles.map(m => {
+//                    if (m.name === this.temp.name) {
+//                        param = {...param, content: '未知', head: m.head, role: m.role, sex: m.sex}
+//                    }
+//                })
+
+                if (param.sourceType === 'select') {//文字选项
+                    param.content = [{option: '第一个选项', click: '未知'}, {option: '第二个选项', click: '未知'}]
+                } else {
+                    param.content = "未知"
+                }
+                if (param.sourceType === 'image') {
+                    param.content = 'https://cube.elemecdn.com/e/fd/0fc7d20532fdaf769a25683617711png.png'
+                }
+                if (this.chapter.chat)
+                    if ((index && typeof(index) === 'number') || index === 0) {
+                        this.chapter.chat.splice(index, 0, {
+                            ...param, contentWidth: 100, contentHeight: 50, sendTemplate: null
+                        })
+                    } else {
+                        this.chapter.chat.push({
+                            ...param, contentWidth: 100, contentHeight: 50, sendTemplate: null
+                        })
+                    }
+                else
+                    this.chapter.chat = [{
+                        ...param,
+                        contentWidth: 100,
+                        contentHeight: 50,
+                        sendTemplate: null,
+                        content: '未知'
+                    }]
+                console.log(param)
+            },
+            saveData() {
+                localStorage.setItem("story", JSON.stringify(this.story))
+            },
+            clearData() {
+                this.story = {
+                    name: '随便说点什么',
+                    roles: [{
+                        name: "旁白",
+                        type: 'backgroud',
+                        head: 'https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1569747794676&di=9138c883a6115abc2e2725b218602239&imgtype=0&src=http%3A%2F%2Fb-ssl.duitang.com%2Fuploads%2Fitem%2F201810%2F18%2F20181018162951_kgwzm.thumb.700_0.jpeg'
+                    }],
+                    activeNames: 0,
+                    chapters: [{
+                        name: '新章节',
+                        summary: '该章节的简介',
+                        chat: [],
+                        top: true,
+                        type: '幕布'
+                    }]
+                }
+            },
+            refreshData() {
+                if (localStorage.getItem("story"))
+                    this.story = JSON.parse(localStorage.getItem("story"))
+                else
+                    this.story = {
+                        name: '随便说点什么',
+                        roles: [{
+                            name: "旁白",
+                            type: 'backgroud',
+                            head: 'https://ss3.bdstatic.com/70cFv8Sh_Q1YnxGkpoWK1HF6hhy/it/u=3864086826,2415830551&fm=26&gp=0.jpg'
+                        }],
+                        activeNames: 0,
+                        chapters: [{
+                            name: '新章节',
+                            summary: '该章节的简介',
+                            chat: []
+                        }]
+                    }
+
+            },
+            postData() {
+
+                let param = {...this.story, id: localStorage.getItem("id")}
+                param = JSON.parse(JSON.stringify(param))
+                param.roles.forEach(v => {
+                    if (v.labels)
+                        v.labels = v.labels.split("\n")
+                    if (v.photos)
+                        v.photos = v.photos.split("\n");
+                })
+                console.log(param)
+                $.ajax({
+                    url: 'https://www.adota.cn/love/story',
+                    data: JSON.stringify(param),
+                    type: 'post',
+                    contentType: 'application/json;charset=utf-8',
+                    success: (data) => {
+                        console.log(data)
+                        this.$alert("上传云端成功")
+                        localStorage.setItem("id", data.data.id);
+                    },
+                    error: console.error,
+                    dataType: 'json'
+                });
+            },
+            addChapter() {
+                this.story.chapters.push({name: '新章节', summary: '章节简介', top: true, chat: [], type: '幕布'})
+            },
+            add() {
+                this.story.roles.push({
+                    name: '新角色',
+                    head: 'https://ss3.bdstatic.com/70cFv8Sh_Q1YnxGkpoWK1HF6hhy/it/u=3864086826,2415830551&fm=26&gp=0.jpg',
+                    half: 'https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1569479150074&di=76bd83380f2924eb2758269105b84930&imgtype=0&src=http%3A%2F%2Fn.sinaimg.cn%2Fsinacn10120%2F486%2Fw581h705%2F20190823%2F3369-icqznha3056997.jpg',
+                    whole: 'https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1569479267212&di=b79ff47419b3d992fe0ae24ba4f0a369&imgtype=0&src=http%3A%2F%2Fn.sinaimg.cn%2Fsinacn20190824ac%2F598%2Fw517h881%2F20190824%2F7804-icqznha7702876.jpg'
+                })
+            }
+        }
+    })
+</script>
+</html>

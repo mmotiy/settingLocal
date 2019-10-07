@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>编辑器</title>
+    <style>
+        html, body, #app {
+            height: 100%;
+            border: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            height: 100px;
+            min-height: 100px;
+            background: deeppink;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        header input {
+            width: 2rem;
+        }
+
+        main {
+            position: relative;
+        }
+
+        .tool-view li {
+            width: 150px;
+            height: 100px;
+            overflow: hidden;
+        }
+
+        .tool-view {
+            width: 150px;
+            min-width: 150px;
+            position: fixed;
+            top: 100px;
+            left: 0;
+            bottom: 0;
+            background: #BBCCCC;
+            overflow: auto;
+        }
+
+        .weui-cell {
+            background: #D9DDCC;
+            margin: 5px;
+            color: #001F2D;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0px 5px;
+        }
+
+        .weui-cell-de {
+            margin: 5px;
+            color: #001F2D;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0px 5px;
+        }
+
+        .weui-cells__title {
+            color: #001F2D;
+            padding: 8px 15px;
+            background: #C9DDC8;
+        }
+
+        .input_component_active:before {
+            background: lightcoral;
+        }
+
+        .input_component_expire:before {
+            width: 15px;
+            height: 15px;
+            display: block;
+            border-radius: 10px;
+            content: '';
+        }
+
+        .out_component_active:after {
+            background: lightcoral;
+        }
+
+        .out_component_expire:after {
+            width: 15px;
+            height: 15px;
+            display: block;
+            border-radius: 10px;
+            content: '';
+        }
+
+        .item:hover {
+            cursor: pointer;
+            box-shadow: #06ae56 0 0 5px;
+        }
+
+        .item_select_lock {
+            /*box-shadow: #06ae56 0 0 5px;*/
+        }
+
+        .item_point {
+
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+<div id="app">
+
+    <header>
+        <input class="weui-input" placeholder="画布宽度" v-model="main_canvas_width">
+        <input class="weui-input" placeholder="画布高度" v-model="main_canvas_height">
+        <input type="range" value="50" max="100"/>
+        <div>x:{{mouse.x}} y:{{mouse.y}}</div>
+    </header>
+    <main :style="{
+            marginLeft: main_canvas_offset_x +'px',
+            marginTop: main_canvas_offset_y +'px'}">
+        <div class="tool-view">
+            <div class="page list" style="display: flex;flex-direction: column">
+                <div v-for="(item,index) in component" :class="item.class">{{item.name}}
+
+                    <div v-for="(iitem,iindex) in item.children"
+                         class="weui-cell input_component_expire out_component_expire" :draggable="iitem.draggable"
+                         :data-code="iitem.code"
+                         @dragstart="componentDragStart($event)"
+                         :class="{input_component_active:iitem.input_component,out_component_active:iitem.out_component}">
+                        {{iitem.name}}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="overflow: visible;padding: 30px;background-image: url(img/wenliku.com-337-random_grey_variations.png)
+        ;  background-size:100px 100px;z-index: -1;" @dragover.prevent=";;" @drop="componentDragOver($event)"
+             :style="{width:parseInt(main_canvas_width,10)+main_canvas_padding*2+'px',height:parseInt(main_canvas_height,10)+main_canvas_padding*2+'px'}">
+            <canvas :width="main_canvas_width" :height="main_canvas_height" id="main_canvas"
+            ></canvas>
+
+
+            <div style="position: absolute;" @mousemove="mainCanvasMouseMove($event)" :style="{top:main_canvas_padding+'px',left:main_canvas_padding+'px'
+            ,bottom:main_canvas_padding+'px',right:main_canvas_padding+'px'
+            ,width:parseInt(main_canvas_width,10)+main_canvas_padding*2+'px'
+            ,height:parseInt(main_canvas_height,10)+main_canvas_padding*2+'px'}">
+                <div v-for="(item,index) in nodes" style="position: absolute;display: block;user-select: none"
+                     @click.stop="itemNodeDbClick($event,item)"
+                     @dblclick.stop="itemNodeDbClick($event)"
+
+                     @mousedown="itemNodeMouse($event,item)"
+                     @mouseup="itemNodeMouse($event,item)"
+                     @mousemove="itemNodeMouse($event,item)"
+                     :style="{left:item.left+'px',top:item.top+'px'}">
+                    <div style="display: flex;" :tabindex="index" @keyup.delete="itemNodeKeyUp($event,index,item)"
+                         :style="{minWidth: item.width+'px',minHeight:item.height+'px'}"
+                         :data-hash="item.hash"
+                         class="weui-cell-de input_component_expire out_component_expire item"
+                         :class="{item_select_lock:item.click,input_component_active:item.input_component,out_component_active:item.out_component}">
+                        <div v-if="item.code === 'man' " style="display: flex;flex-direction: column;align-items: center"> <img src="/img/wenliku.com-337-random_grey_variations.png" style="border-radius: 40px" width="80" height="80" draggable="false"> {{item.name}} </div>
+
+
+                        <div v-if="item.code === 'chat' " style="display: flex;color: #FFFFFF;flex-direction: column;align-items: center;width: 402px;height: 797px;background: url(/img/andriod_white.png)" > {{item.name}}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+<script src="conf/config.js"></script>
+<script type="application/javascript">
+    const app = new Vue({
+        el: "#app",
+        data: function () {
+            return {
+                main_canvas_width: 2500,
+                main_canvas_height: 1500,
+                cell_size: 20,
+                main_canvas_offset_x: 150,
+                main_canvas_offset_y: 100,
+                main_canvas_padding: 30,
+                mouse: {x: 0, y: 0},
+                nodes: [],
+                component: JSON.parse(localStorage.getItem("toolview"))
+            }
+        },
+        mounted: function () {
+            this.init()
+        },
+        updated: function () {
+            this.init()
+        },
+        methods: {
+            itemNodeKeyUp(event, index, item) {
+                event.preventDefault()
+
+                if (item.click)
+                    this.nodes.splice(index, 1)
+                console.log(2)
+            },
+            itemNodeMouse(event, item) {
+                console.log(event.type)
+                const type = event.type
+                if (type === 'mousedown') {
+                    item.move = true
+                    item.mousex = event.clientX
+                    item.mousey = event.clientY
+                }
+                if (type === 'mousemove' && item.move) {
+                    item.left += (event.clientX - item.mousex)
+                    item.top += (event.clientY - item.mousey)
+
+                    item.mousex = event.clientX;
+                    item.mousey = event.clientY;
+                }
+                if (type === 'mouseup' && item.move) {
+                    item.move = false;
+                    item.mousex = event.clientX;
+                    item.mousey = event.clientY;
+                }
+//                console.log(event)
+            },
+            itemNodeDbClick(event, item) {
+                console.log(event)
+                if (event.type === 'click') {
+                    this.nodes.map(m => m.click = false)
+                    item.click = true
+                }
+            },
+            pageScroll(event) {
+                console.log(event)
+            },
+            componentDragStart(event) {
+                let transData = {
+                    code: event.target.getAttribute("data-code"), width: event.target.clientWidth,
+                    height: event.target.clientHeight
+                }
+                console.log(event)
+                event.dataTransfer.setData("componentInfo", JSON.stringify(transData));
+            },
+            componentDragOver(event) {
+                let transforData = JSON.parse(event.dataTransfer.getData("componentInfo"))
+                console.log(transforData)
+                for (let i = 0; i < this.component.length; i++) {
+                    let m = this.component[i]
+                    if (m.children)
+                        m.children.map(mm => {
+                            if (mm.code === transforData.code) {
+                                transforData = {...transforData, ...mm}
+                            }
+                        })
+                }
+                console.log(transforData)
+                this.nodes.push({
+                    ...transforData,
+                    top: event.clientY - this.main_canvas_offset_y - this.main_canvas_padding,
+                    left: event.clientX - this.main_canvas_offset_x - this.main_canvas_padding
+                })
+                this.mainCanvasMouseMove(event)
+
+            },
+            mainCanvasMouseMove(event) {
+                this.mouse.x = event.clientX - this.main_canvas_offset_x - this.main_canvas_padding
+                this.mouse.y = event.clientY - this.main_canvas_offset_y - this.main_canvas_padding
+            },
+            loctionExchange() {
+
+            },
+            init() {
+                const canvas = document.getElementById("main_canvas")
+                const ctx = canvas.getContext("2d");
+                ctx.rect(0, 0, this.main_canvas_width, this.main_canvas_height);
+                ctx.fillStyle = "white";
+                ctx.fill();
+                ctx.save()
+                ctx.lineWidth = 1
+                ctx.strokeStyle = "#ddd"
+                ctx.translate(0.5, 0.5);
+                for (var i = 0; i < this.main_canvas_width; i += this.cell_size) {
+                    ctx.beginPath()
+                    ctx.moveTo(i, 0)
+                    ctx.lineTo(i, this.main_canvas_height)
+                    ctx.closePath()
+                    ctx.stroke()
+
+                }
+                for (var i = 0; i < this.main_canvas_height; i += this.cell_size) {
+                    ctx.beginPath()
+                    ctx.moveTo(0, i)
+                    ctx.lineTo(this.main_canvas_width, i)
+                    ctx.closePath()
+                    ctx.stroke()
+                }
+
+                ctx.restore()
+            }
+        }
+    })
+
+</script>
+</body>
+</html>

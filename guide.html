@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <!-- import CSS -->
+    <link rel="stylesheet" href="css/lib/theme-chalk/index.css">
+    <script src="js/zepto.js"></script>
+    <script src="js/callbacks.js"></script>
+    <script src="js/deferred.js"></script>
+    <script src="js/utils.js"></script>
+	<style type="text/css">
+		a{
+			text-decoration: none ;
+			color: initial;
+		}
+	</style>
+</head>
+<body style="user-select: none">
+<div id="app">
+    <el-container>
+        <el-header>
+			最近打开的文档
+        </el-header>
+        <el-main >
+			<h4>云端存档</h4>
+			<div style="display: flex;justify-content: flex-start;flex-wrap: wrap;">
+           <el-card shadow="always" v-for="item of tableData" style="margin: 0.3125rem;" >
+			   <a :href="urls.edit_path+'?mode=net&name='+item.name" target="_blank">{{item.name}}<i class="el-icon-edit"></i></a>
+			   <br>
+			   版本：{{item.version}}
+		   </el-card>
+		   </div>
+		   <h4>本地缓存</h4>
+		   <div style="display: flex;justify-content: flex-start;flex-wrap: wrap;">
+			   <el-card shadow="always" style="margin: 0.3125rem;" >
+					<a :href="urls.edit_path+'?mode=local'" target="_blank" disabled >{{story?story.name:'没有存档'}}<i class="el-icon-edit"></i></a>
+					<br>
+					版本：{{story?story.version:'0.0.0'}}
+			   </el-card>
+		   </div>
+        </el-main>
+        <el-footer>
+
+        </el-footer>
+    </el-container>
+    
+
+    <el-dialog
+            :visible.sync="dialogVisible"
+            width="60%">
+        <template slot="title">
+            弹窗
+        </template>
+       
+        
+        <span slot="footer" class="dialog-footer">
+            <el-button type="text" circle icon="el-icon-plus" @click=""></el-button>
+        <el-button type="primary" @click="">关 闭</el-button>
+        </span>
+    </el-dialog>
+
+</div>
+</body>
+	<!-- import Vue before Element -->
+	<script src="js/vue/dist/vue.js"></script>
+	<!-- import JavaScript -->
+	<script src="js/element-ui/lib/inex.js"></script>
+
+<script>
+	Vue.config.devtools = true
+    var App = new Vue({
+        el: '#app',
+        created: function () {
+            this.refreshData()
+        },
+        data: function () {
+            return {
+                visible: false,
+				tableData:null,
+				story:null,
+				urls:window.urls,
+                dialogVisible: false,
+            }
+        },
+        methods: {
+            refreshData(){
+				app_get(urls.story_list_url).then(data=>{
+					this.tableData = data.data
+				})
+				this.story = JSON.parse(localStorage.getItem("story"))
+			}
+        }
+    })
+</script>
+</html>

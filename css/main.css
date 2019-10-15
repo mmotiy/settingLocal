@@ -1,10 +1,10 @@
 @font-face {
 	font-family: "SourceHanSansCN-Regular";
-	src: url("/后台管理/font/SourceHanSansCN-Regular.woff2") format("woff2"),
-		url("/后台管理/font/SourceHanSansCN-Regular.woff") format("woff"),
-		url("/后台管理/font/SourceHanSansCN-Regular.ttf") format("truetype"),
-		url("/后台管理/font/SourceHanSansCN-Regular.eot") format("embedded-opentype"),
-		url("/后台管理/font/SourceHanSansCN-Regular.svg") format("svg");
+	src: url("/settingLocal/font/SourceHanSansCN-Regular.woff2") format("woff2"),
+		url("/settingLocal/font/SourceHanSansCN-Regular.woff") format("woff"),
+		url("/settingLocal/font/SourceHanSansCN-Regular.ttf") format("truetype"),
+		url("/settingLocal/font/SourceHanSansCN-Regular.eot") format("embedded-opentype"),
+		url("/settingLocal/font/SourceHanSansCN-Regular.svg") format("svg");
 	font-weight: normal;
 	font-style: normal;
 }
